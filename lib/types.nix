@@ -31,7 +31,7 @@
       };
       address = lib.mkOption {
         type = lib.types.str;
-        description = "IP/Mask (CIDR) для интерфейса (например, 10.0.0.1/24).";
+        description = "IP/Mask (CIDR).";
       };
       port = lib.mkOption {
         type = lib.types.int;
@@ -49,7 +49,7 @@
     options = {
       name = lib.mkOption {
         type = lib.types.str;
-        description = "Имя пира (идентификатор).";
+        description = "Имя пира.";
       };
       publicKey = lib.mkOption {
         type = lib.types.str;
@@ -57,11 +57,12 @@
       };
       privateKey = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        description = "Приватный ключ (опционально).";
+        description = "Приватный ключ.";
         default = null;
       };
       networks = lib.mkOption {
-        type = lib.types.attrsOf (import ./. {}).amneziaWgNetworkType;
+        # ВАЖНО: вместо (import ./. {})
+        type = lib.types.attrsOf amneziaWgNetworkType;
         description = "Сети (address, endpoint, allowedNetworks) для каждого интерфейса.";
       };
     };
