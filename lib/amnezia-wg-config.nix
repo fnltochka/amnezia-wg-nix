@@ -3,10 +3,9 @@
   lib,
   ...
 }: let
-  # Можно вынести настройки Amnezia WG в отдельный атрибут,
-  # чтобы потом опционально добавлять/изменять.
+  # Базовые настройки для [Interface] в клиентском конфиге — имитируем Amnezia
   baseConfig = {
-    # Настройки из примера amnezia
+    # Пример, как в amnezia. Можно расширить/изменить.
     Jc = 0;
     Jmin = 0;
     Jmax = 0;
@@ -18,7 +17,7 @@
     H4 = 4;
   };
 
-  # Пример для серверной конфигурации
+  # Генерация server config
   generateServerConfig = iface: ''
     [Interface]
     PrivateKey = ${config.networking.amnezia-wg.exports.privateKey}
@@ -38,7 +37,7 @@
       iface.peers}
   '';
 
-  # Пример генерации client конфигурации
+  # Генерация client config
   generateClientConfig = iface: peer: ''
     [Interface]
     ${lib.concatMapStrings (kv: "${kv.key} = ${kv.value}\n") baseConfig}

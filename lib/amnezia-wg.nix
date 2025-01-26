@@ -8,70 +8,68 @@
   configLib = import ./amnezia-wg-config.nix {inherit config lib;};
   interfacesLib = import ./amnezia-wg-interfaces.nix {inherit config lib;};
 in {
-  #### Описание опций ####
   options.networking.amnezia-wg = {
     exports = lib.mkOption {
       type = lib.types.submodule {
         options = {
           privateKey = lib.mkOption {
             type = lib.types.str;
-            description = "Приватный ключ узла.";
+            description = "Приватный ключ WireGuard (server).";
           };
           publicKey = lib.mkOption {
             type = lib.types.str;
-            description = "Публичный ключ узла.";
+            description = "Публичный ключ WireGuard (server).";
           };
           publicIP = lib.mkOption {
             type = lib.types.str;
-            description = "Публичный IP-адрес узла.";
+            description = "Публичный IP-адрес (или домен) узла WireGuard.";
           };
           interfaces = lib.mkOption {
+            # ссылка на amneziaWgInterfaceType
             type = lib.types.listOf (import ./types.nix {inherit lib;}).amneziaWgInterfaceType;
-            description = "Список интерфейсов.";
+            description = "Список интерфейсов WireGuard (на сервере).";
             default = [];
           };
           peers = lib.mkOption {
+            # ссылка на amneziaWgPeerType
             type = lib.types.attrsOf (import ./types.nix {inherit lib;}).amneziaWgPeerType;
             description = "Список пиров (по имени).";
             default = {};
           };
         };
       };
-      description = "Экспорты Amnezia WG.";
+      description = "WireGuard параметры (Amnezia WG).";
     };
 
-    # Подготовленный список интерфейсов для внутреннего использования (после обработки)
     processedInterfaces = lib.mkOption {
       type = lib.types.listOf lib.types.attrs;
       default = interfacesLib.mkAmneziaWgInterfaces cfg.exports.interfaces;
     };
   };
 
-  #### Реализация ####
   config = let
     allIfaces = cfg.processedInterfaces;
   in {
-    # Пакеты
+    # Ставим нужные пакеты
     environment.systemPackages = with pkgs; [
-      unstable.amneziawg-tools
+      (pkgs.unstable.amneziawg-tools or pkgs.amneziawg-tools)
       iptables
       iproute2
       bash
     ];
 
-    boot.extraModulePackages = [
-      config.boot.kernelPackages.amneziawg
-    ];
+    # Модули ядра: amneziawg (при наличии)
+    boot.extraModulePackages = [(config.boot.kernelPackages.amneziawg or null)];
     boot.kernelModules = ["amneziawg"];
 
-    # Генерация конфигов
+    # Генерируем файлы /etc/amneziawg/...
     environment.etc = lib.mkMerge [
-      # Сохраняем private.key / public.key
       {
+        # Private key + public key
         "amneziawg/private.key".text = cfg.exports.privateKey;
         "amneziawg/public.key".text = cfg.exports.publicKey;
       }
-      # Серверная конфигурация для каждого iface
+      # Серверная конфигурация
       (builtins.listToAttrs (map (iface: {
           name = "amneziawg/${iface.name}.conf";
           value = {
@@ -80,7 +78,7 @@ in {
           };
         })
         allIfaces))
-      # Клиентские конфиги для каждого p2p
+      # Клиентские конфиги
       (builtins.listToAttrs (lib.flatten (map (
           iface:
             map (peer: {
@@ -95,7 +93,7 @@ in {
         allIfaces)))
     ];
 
-    # Запуск сервисов
+    # systemd-сервисы
     systemd.services = lib.mkMerge [
       (builtins.listToAttrs (map (iface: {
           name = "amnezia-wg-${iface.name}";
@@ -109,15 +107,15 @@ in {
               ExecStartPre = ''
                 ${pkgs.bash}/bin/bash -c '${pkgs.iproute2}/bin/ip link delete ${iface.name} 2>/dev/null || :'
               '';
-              ExecStart = "${pkgs.unstable.amneziawg-tools}/bin/awg-quick up /etc/amneziawg/${iface.name}.conf";
-              ExecStop = "${pkgs.unstable.amneziawg-tools}/bin/awg-quick down /etc/amneziawg/${iface.name}.conf";
+              ExecStart = "${(pkgs.unstable.amneziawg-tools or pkgs.amneziawg-tools)}/bin/awg-quick up /etc/amneziawg/${iface.name}.conf";
+              ExecStop = "${(pkgs.unstable.amneziawg-tools or pkgs.amneziawg-tools)}/bin/awg-quick down /etc/amneziawg/${iface.name}.conf";
             };
           };
         })
         allIfaces))
     ];
 
-    # Firewall — открываем порты
+    # Firewall: по умолчанию открываем UDP-порты всех интерфейсов, TCP нет
     networking.firewall = {
       enable = true;
       allowedUDPPorts = map (i: i.port) allIfaces;

@@ -5,14 +5,16 @@
 }: let
   exports = config.networking.amnezia-wg.exports;
 
-  # Функция возвращает всех пиров, у которых есть настройка для iface.name
+  # Возвращает список пиров, у которых в networks есть iface.name
   peersForInterface = iface:
     builtins.attrValues (
-      lib.filterAttrs (_: peer: peer.networks ? ${iface.name}) exports.peers
+      lib.filterAttrs
+      (_: peer: (peer.networks ? "${iface.name}"))
+      exports.peers
     );
 
   peerToConfig = iface: peer: let
-    net = peer.networks.${iface.name};
+    net = peer.networks."${iface.name}";
   in {
     name = peer.name;
     publicKey = peer.publicKey;
