@@ -3,26 +3,31 @@
   lib,
   ...
 }: let
-  filterPeers = ifaceName: exports:
-    lib.filterAttrs (name: peer: lib.hasAttr ifaceName peer.networks) exports.peers;
+  exports = config.networking.amnezia-wg.exports;
 
-  transformPeer = ifaceName: peer: let
-    network = peer.networks.${ifaceName};
+  # Функция возвращает всех пиров, у которых есть настройка для iface.name
+  peersForInterface = iface:
+    builtins.attrValues (
+      lib.filterAttrs (_: peer: peer.networks ? ${iface.name}) exports.peers
+    );
+
+  peerToConfig = iface: peer: let
+    net = peer.networks.${iface.name};
   in {
     name = peer.name;
     publicKey = peer.publicKey;
-    allowedIPs = lib.concatStringsSep ", " ([network.address] ++ network.allowedNetworks);
-    persistentKeepalive = network.persistentKeepalive;
-    endpoint = network.endpoint or null;
+    allowedIPs = lib.concatStringsSep ", " ([net.address] ++ net.allowedNetworks);
+    persistentKeepalive = net.persistentKeepalive;
+    endpoint = net.endpoint;
   };
 
-  createInterface = exports: iface: {
+  mkInterface = iface: {
     name = iface.name;
     address = iface.address;
     port = iface.port;
-    peers = lib.attrValues (lib.mapAttrs (_: peer: transformPeer iface.name peer) (filterPeers iface.name exports));
+    mtu = iface.mtu;
+    peers = map (peer: peerToConfig iface peer) (peersForInterface iface);
   };
 in {
-  mkAmneziaWgInterfaces = exports: interfaces:
-    map (iface: createInterface exports iface) interfaces;
+  mkAmneziaWgInterfaces = interfaces: map mkInterface interfaces;
 }

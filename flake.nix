@@ -1,16 +1,18 @@
 {
   description = "Amnezia WG Nix Library";
-
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
-
   outputs = {
     self,
     nixpkgs,
-  }: {
-    defaultPackage.x86_64-linux = import ./default.nix {
-      inherit (nixpkgs) lib pkgs;
+  }: let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs {inherit system;};
+  in {
+    defaultPackage.${system} = import ./default.nix {
+      inherit pkgs;
+      lib = pkgs.lib;
     };
   };
 }
