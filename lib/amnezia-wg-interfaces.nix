@@ -5,12 +5,10 @@
 }: let
   exports = config.networking.amnezia-wg.exports;
 
-  # Возвращает список пиров, у которых в networks есть iface.name
+  # Выбираем всех пиров, у которых есть networks."iface.name"
   peersForInterface = iface:
     builtins.attrValues (
-      lib.filterAttrs
-      (_: peer: (peer.networks ? "${iface.name}"))
-      exports.peers
+      lib.filterAttrs (_: peer: peer.networks ? "${iface.name}") exports.peers
     );
 
   peerToConfig = iface: peer: let
@@ -31,5 +29,6 @@
     peers = map (peer: peerToConfig iface peer) (peersForInterface iface);
   };
 in {
-  mkAmneziaWgInterfaces = interfaces: map mkInterface interfaces;
+  mkAmneziaWgInterfaces = interfaces:
+    map mkInterface interfaces;
 }

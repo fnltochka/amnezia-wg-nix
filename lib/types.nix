@@ -1,58 +1,58 @@
 {lib, ...}: {
-  ### 1) NetworkType — описывает подсети для конкретного интерфейса WireGuard
+  # 1) Описывает "network" (address, allowedNetworks и т.д.)
   amneziaWgNetworkType = lib.types.submodule {
     options = {
       address = lib.mkOption {
         type = lib.types.str;
-        description = "IP/Mask (CIDR) для интерфейса Amnezia WG (например, 10.0.0.2/32).";
+        description = "IP/Mask (CIDR) для пира на данном интерфейсе (например 10.0.0.2/32).";
       };
       allowedNetworks = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        description = "Список разрешённых подсетей (AllowedIPs).";
+        description = "Список AllowedIPs (помимо address), например ['192.168.0.0/24'].";
         default = [];
       };
       endpoint = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        description = "Endpoint для подключения (host:port). Может быть null.";
+        description = "Endpoint (host:port). Может быть null, если пиру не нужен Endpoint.";
         default = null;
       };
       persistentKeepalive = lib.mkOption {
         type = lib.types.int;
-        description = "Keepalive-интервал в секундах. По умолчанию 25.";
+        description = "Keepalive в секундах, по умолчанию 25.";
         default = 25;
       };
     };
   };
 
-  ### 2) InterfaceType — описывает интерфейс WireGuard (серверная сторона)
+  # 2) Описывает сам интерфейс (серверная сторона)
   amneziaWgInterfaceType = lib.types.submodule {
     options = {
       name = lib.mkOption {
         type = lib.types.str;
-        description = "Имя интерфейса (например, awg0).";
+        description = "Имя интерфейса WireGuard (например 'awg0').";
       };
       address = lib.mkOption {
         type = lib.types.str;
-        description = "IP/Mask (CIDR) для этого интерфейса (например, 10.0.0.1/24).";
+        description = "CIDR-адрес интерфейса (например '10.0.0.1/24').";
       };
       port = lib.mkOption {
         type = lib.types.int;
-        description = "UDP-порт, на котором будет слушать WireGuard.";
+        description = "Порт (UDP) для этого интерфейса (например 51820).";
       };
       mtu = lib.mkOption {
         type = lib.types.nullOr lib.types.int;
-        description = "MTU интерфейса (необязательный).";
+        description = "MTU (необязательно).";
         default = null;
       };
     };
   };
 
-  ### 3) PeerType — описывает Peer (клиентскую/другую узловую конфигурацию)
+  # 3) Peer (клиент, другой узел) — ссылается на amneziaWgNetworkType
   amneziaWgPeerType = lib.types.submodule {
     options = {
       name = lib.mkOption {
         type = lib.types.str;
-        description = "Имя пира (любая строка-идентификатор).";
+        description = "Идентификатор пира (произвольная строка).";
       };
       publicKey = lib.mkOption {
         type = lib.types.str;
@@ -60,19 +60,18 @@
       };
       privateKey = lib.mkOption {
         type = lib.types.nullOr lib.types.str;
-        description = "Приватный ключ пира (опционально, если нужно генерировать клиентские конфиги).";
+        description = "Приватный ключ пира (если нужно генерировать клиентские конфиги).";
         default = null;
       };
       networks = lib.mkOption {
-        # Привязка к amneziaWgNetworkType
         type = lib.types.attrsOf amneziaWgNetworkType;
         description = ''
-          Отображение: interfaceName -> {
+          Мапа ifaceName -> {
             address = "10.0.0.2/32";
-            allowedNetworks = ["10.0.0.0/24"];
-            endpoint = "endpoint_ip:port";
+            allowedNetworks = [...];
+            endpoint = "...:51820";
             persistentKeepalive = 25;
-          }.
+          }
         '';
       };
     };
