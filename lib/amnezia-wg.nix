@@ -50,10 +50,10 @@ in {
   config = let
     allIfaces = cfg.processedInterfaces;
     # ссылка на tools
-    amneziaTools = pkgs.unstable.amneziawg-tools or pkgs.amneziawg-tools or null;
+    amneziaTools = pkgs.unstable.amneziawg-tools;
   in {
     environment.systemPackages = with pkgs; [
-      (amneziaTools or null) # или можно убрать or null, если точно есть
+      amneziaTools
       iptables
       iproute2
       bash
@@ -61,7 +61,7 @@ in {
 
     # Подключаем модуль amneziawg, если он есть
     boot.extraModulePackages = [
-      (config.boot.kernelPackages.amneziawg or null)
+      config.boot.kernelPackages.amneziawg
     ];
     boot.kernelModules = ["amneziawg"];
 
@@ -109,8 +109,8 @@ in {
               ExecStartPre = ''
                 ${pkgs.bash}/bin/bash -c '${pkgs.iproute2}/bin/ip link delete ${iface.name} 2>/dev/null || :'
               '';
-              ExecStart = "${(amneziaTools or "/bin/false")}/bin/awg-quick up /etc/amneziawg/${iface.name}.conf";
-              ExecStop = "${(amneziaTools or "/bin/false")}/bin/awg-quick down /etc/amneziawg/${iface.name}.conf";
+              ExecStart = "${amneziaTools}/bin/awg-quick up /etc/amneziawg/${iface.name}.conf";
+              ExecStop = "${amneziaTools}/bin/awg-quick down /etc/amneziawg/${iface.name}.conf";
             };
           };
         })
