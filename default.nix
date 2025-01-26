@@ -1,8 +1,9 @@
 {
-  lib,
+  config,
   pkgs,
+  lib,
   ...
 }:
 import ./lib/amnezia-wg.nix {
-  inherit lib pkgs;
+  inherit config pkgs lib;
 }
